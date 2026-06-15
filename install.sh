@@ -126,30 +126,35 @@ if ! python3 -m pip --version &>/dev/null; then
         log_ok "pip 安装完成"
     fi
 fi
+# root 用户需加 --break-system-packages 避免系统包冲突
+PIP_OPTS="-q"
+if [[ "$(id -u)" == "0" ]]; then
+    PIP_OPTS="-q --break-system-packages"
+fi
 PIP="python3 -m pip"
 
 log_info "升级 pip..."
-$PIP install -q --upgrade pip
+$PIP install $PIP_OPTS --upgrade pip
 
 log_info "安装基础依赖（aiohttp, PyYAML, numpy）..."
-$PIP install -q aiohttp PyYAML numpy
+$PIP install $PIP_OPTS aiohttp PyYAML numpy
 log_ok "基础依赖安装完成"
 
 if [[ "$GPU_AVAILABLE" == "true" ]]; then
     log_info "安装 GPU（CUDA）支持库..."
     if command -v nvcc &>/dev/null; then
+        # 只取主版本号：CUDA 12.x → cupy-cuda12x，CUDA 11.x → cupy-cuda11x
         CUDA_MAJOR=$(nvcc --version | grep -oP 'release \K[0-9]+' | head -1)
-        CUDA_MINOR=$(nvcc --version | grep -oP 'release [0-9]+\.\K[0-9]+' | head -1)
-        CUPY_PKG="cupy-cuda${CUDA_MAJOR}${CUDA_MINOR}x"
-        log_info "安装 $CUPY_PKG..."
-        $PIP install -q "$CUPY_PKG" && log_ok "CuPy GPU 库安装完成" || {
+        CUPY_PKG="cupy-cuda${CUDA_MAJOR}x"
+        log_info "检测到 CUDA $CUDA_MAJOR，安装 $CUPY_PKG..."
+        $PIP install $PIP_OPTS "$CUPY_PKG" && log_ok "CuPy GPU 库安装完成" || {
             log_warn "CuPy 安装失败，尝试安装 pycuda..."
-            $PIP install -q pycuda && log_ok "pycuda 安装完成" || \
+            $PIP install $PIP_OPTS pycuda && log_ok "pycuda 安装完成" || \
                 log_warn "GPU 库安装失败，将使用 CPU 模式"
         }
     else
-        log_info "安装 cupy-cuda12x（默认 CUDA 12）..."
-        $PIP install -q cupy-cuda12x && log_ok "CuPy GPU 库安装完成" || \
+        log_info "nvcc 未找到，安装 cupy-cuda12x（默认 CUDA 12）..."
+        $PIP install $PIP_OPTS cupy-cuda12x && log_ok "CuPy GPU 库安装完成" || \
             log_warn "GPU 库安装失败，将使用 CPU 模式"
     fi
 else
