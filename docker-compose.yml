@@ -1,0 +1,46 @@
+services:
+  miner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        CSD_ARCH: amd64   # Change to arm64 for ARM systems
+    image: csd-solo-miner:latest
+    container_name: csd-miner
+    restart: unless-stopped
+
+    # NVIDIA GPU passthrough
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1          # Use 1 GPU (change to "all" for all GPUs)
+              capabilities: [gpu]
+
+    environment:
+      MINER_WALLET: "${MINER_WALLET}"       # Set in .env or export before docker compose up
+      GPU_DEVICE: "${GPU_DEVICE:-0}"
+      RPC_PORT: "8789"
+      P2P_PORT: "18007"
+      BOOTNODES: "${BOOTNODES:-all}"        # "all" = all mainnet bootnodes
+      DOMAIN: "${DOMAIN:-compute}"
+      WORKER_NAME: "${WORKER_NAME:-docker-worker}"
+
+    ports:
+      - "8789:8789"     # Node RPC
+      - "18007:18007"   # P2P (open in firewall for better connectivity)
+      - "9090:9090"     # Miner stats dashboard
+
+    volumes:
+      - csd-data:/app/cs.db   # Persist chain data across restarts
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+volumes:
+  csd-data:
+    driver: local
