@@ -1,20 +1,15 @@
-# CSD Solo GPU Miner — Python dependencies
-# Install with: pip install -r requirements.txt
+# CSD Solo Miner — Python 3.9+ 依赖
+# 只需运行: pip install -r requirements.txt
 
-# Async HTTP client (node RPC calls)
+# Async HTTP 客户端（节点 RPC 调用）
 aiohttp>=3.9.0
 
-# YAML config
+# YAML 配置文件解析
 PyYAML>=6.0
 
-# Numerical computing (CPU fallback scoring)
+# 数值计算（用于哈希评分）
 numpy>=1.24.0
 
-# GPU support — install ONE of the following matching your CUDA version:
-# pip install cupy-cuda12x     (CUDA 12.x)
-# pip install cupy-cuda11x     (CUDA 11.x)
-# pip install pycuda            (alternative CUDA backend)
-#
-# setup.sh installs the correct package automatically.
-# Leave the lines below commented out if you let setup.sh handle it.
-# cupy-cuda12x
+# 注意：本版本（v5.0.0）已移除 GPU 硬依赖
+# 程序将使用 CPU 模式运行，无需安装 CUDA 或显卡驱动
+# 若需 GPU 加速，可手动安装: pip install cupy-cuda12x
