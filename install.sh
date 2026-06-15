@@ -113,7 +113,19 @@ fi
 # ── 第三步：安装 Python 依赖 ──────────────────────────────────────────────────
 log_step "第三步：安装 Python 依赖"
 
-# 统一使用 python3 -m pip，兼容所有系统
+# 确保 pip 可用，兼容所有系统
+if ! python3 -m pip --version &>/dev/null; then
+    log_info "pip 未安装，正在尝试安装..."
+    if python3 -m ensurepip --upgrade &>/dev/null 2>&1; then
+        log_ok "pip 已通过 ensurepip 安装"
+    else
+        log_info "通过 get-pip.py 安装 pip..."
+        curl -fsSL https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
+        python3 /tmp/get-pip.py -q
+        rm -f /tmp/get-pip.py
+        log_ok "pip 安装完成"
+    fi
+fi
 PIP="python3 -m pip"
 
 log_info "升级 pip..."
