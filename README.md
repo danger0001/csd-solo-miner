@@ -7,7 +7,7 @@
 ## 快速开始
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/danger0001/csd-solo-miner/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/danger0001/solo-miner/main/install.sh | bash
 ```
 
 > 自动完成环境检测、依赖安装、配置生成，全程中文引导。
@@ -49,7 +49,7 @@ curl -fsSL https://raw.githubusercontent.com/danger0001/csd-solo-miner/main/inst
 ## 一键安装
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/danger0001/csd-solo-miner/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/danger0001/solo-miner/main/install.sh | bash
 ```
 
 `install.sh` 会自动完成：下载 csd 节点程序、下载 genesis 文件、安装 Python 依赖、检测 GPU 并安装 CUDA 支持、生成配置文件，最后引导你填写钱包地址并启动挖矿。
@@ -304,9 +304,9 @@ python miner.py --配置 config.yaml
 
 | 版本 | 说明 |
 |------|------|
-| [v2.1.0](https://github.com/danger0001/csd-solo-miner) | 智能带宽检测，低带宽自动切换最优单节点 |
-| [v2.0.0](https://github.com/danger0001/csd-solo-miner/releases/tag/v2.0.0) | 中文界面、一键安装脚本 |
-| [v1.0.0](https://github.com/danger0001/csd-solo-miner/releases/tag/v1.0.0) | 英文版初始发布 |
+| [v2.1.0](https://github.com/danger0001/solo-miner) | 智能带宽检测，低带宽自动切换最优单节点 |
+| [v2.0.0](https://github.com/danger0001/solo-miner/releases/tag/v2.0.0) | 中文界面、一键安装脚本 |
+| [v1.0.0](https://github.com/danger0001/solo-miner/releases/tag/v1.0.0) | 英文版初始发布 |
 
 ---
 
