@@ -1,5 +1,55 @@
 # 更新日志
 
+## v5.2.1 (2026-06-15)
+
+### 🐛 关键修复
+
+**修复配置文件键名不匹配问题**
+
+### 问题描述
+
+v5.2.0 中安装脚本生成的配置文件使用中文键名（矿工、节点、GPU 等），但 miner.py 代码使用英文键名（miner、node、gpu 等），导致启动时报错：
+```
+KeyError: 'miner'
+```
+
+### 修复内容
+
+- **统一配置文件键名**：将生成的 config.yaml 键名改为英文
+  - `矿工` → `miner`
+  - `节点` → `node`
+  - `GPU` → `gpu`
+  - `挖矿` → `mining`
+  - `引导节点` → `bootnodes`
+- **添加缺失字段**：
+  - `mining.difficulty_target`
+  - `node.rpc_host` / `node.p2p_host`
+  - `node.genesis`
+- **移除冗余字段**：删除 `低带宽模式`
+
+### 影响
+
+- **已安装用户**：需要重新安装或手动修复配置文件
+- **新安装用户**：自动生成正确格式的配置文件
+
+### 升级方法
+
+**方式一：使用管理脚本重新安装（推荐）**
+```bash
+~/solo.sh
+# 选择 [1] 重新安装
+```
+
+**方式二：手动更新**
+```bash
+cd ~/solo
+curl -fsSL https://raw.githubusercontent.com/danger0001/solo-miner/main/solo-miner-install.sh -o solo-install.sh
+chmod +x solo-install.sh
+# 运行安装脚本会重新生成配置文件
+```
+
+---
+
 ## v5.2.0 (2026-06-15)
 
 ### ⭐ 多合一综合管理脚本

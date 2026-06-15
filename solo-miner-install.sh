@@ -1,8 +1,9 @@
 #!/bin/bash
 
 #############################################
-# CSD SOLO GPU 挖矿 - 一键安装脚本 v5.2.0
+# CSD SOLO GPU 挖矿 - 一键安装脚本 v5.2.1
 # GPU 优先，自动检测并配置 CUDA 支持
+# 修复：配置文件键名统一为英文
 # 推荐使用 solo.sh 多合一管理脚本
 #############################################
 
@@ -215,34 +216,36 @@ generate_config() {
         BOOTSTRAP_LIST="${BOOTSTRAP_LIST}  - \"$node\"\n"
     done
 
-    # 创建配置文件
+    # 创建配置文件（使用英文键名以匹配代码）
     cat > config.yaml <<EOF
-# CSD Solo Miner 配置文件
+# CSD Solo Miner 配置文件 v5.2.1
 
-矿工:
-  钱包地址: "$WALLET_ADDRESS"
-  挖矿域: "compute"
-  工作器名称: "solo-worker-01"
+miner:
+  wallet_address: "$WALLET_ADDRESS"
+  worker_name: "solo-worker-01"
 
-节点:
-  数据目录: "./data"
-  RPC端口: 8789
-  P2P端口: 18007
+mining:
+  domain: "compute"
+  proposal_interval: 12
+  attestation_interval: 6
+  difficulty_target: "0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
 
-GPU:
-  设备编号: 0
-  每块线程数: 256
-  最大块数: 4096
-  批量大小: 65536
+node:
+  datadir: "./data"
+  rpc_host: "0.0.0.0"
+  rpc_port: 8789
+  p2p_host: "0.0.0.0"
+  p2p_port: 18007
+  genesis: "./genesis.bin"
 
-挖矿:
-  提案间隔秒数: 12
-  认证间隔秒数: 6
+gpu:
+  device_id: 0
+  threads_per_block: 256
+  max_blocks: 4096
+  batch_size: 65536
 
-引导节点:
+bootnodes:
 $(echo -e "$BOOTSTRAP_LIST")
-
-低带宽模式: true
 EOF
 
     # 创建启动脚本
@@ -323,7 +326,7 @@ show_completion_info() {
     log_info "安装完成！"
     echo ""
     echo "========================================"
-    echo "  CSD SOLO GPU 挖矿安装成功 v5.2.0"
+    echo "  CSD SOLO GPU 挖矿安装成功 v5.2.1"
     echo "========================================"
     echo ""
     echo "安装目录: $INSTALL_DIR"
@@ -358,7 +361,7 @@ show_completion_info() {
 # 主函数
 main() {
     echo "========================================"
-    echo "  CSD SOLO GPU 挖矿 - 一键安装 v5.2.0"
+    echo "  CSD SOLO GPU 挖矿 - 一键安装 v5.2.1"
     echo "  GPU 优先 | 自动配置 CUDA"
     echo "========================================"
     echo ""
