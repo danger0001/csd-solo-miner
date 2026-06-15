@@ -21,6 +21,7 @@ import aiohttp
 import yaml
 
 from gpu_worker import GPU工作器
+from node_selector import 节点选择器
 
 # ── 日志配置 ──────────────────────────────────────────────────────────────────
 
@@ -370,6 +371,14 @@ def 解析参数():
     解析器.add_argument("--no-node", "--仅矿工", action="store_true", help="跳过启动 csd 节点")
     解析器.add_argument("--gpu", "--显卡", type=int, default=None, help="指定显卡设备编号")
     解析器.add_argument("--debug", "--调试", action="store_true", help="开启详细日志")
+    解析器.add_argument(
+        "--skip-bw", "--跳过带宽检测", action="store_true",
+        help="跳过带宽检测，强制使用全部引导节点",
+    )
+    解析器.add_argument(
+        "--bw-threshold", "--带宽阈值", type=float, default=5.0,
+        help="低带宽阈值（Mbps），低于此值仅使用最优单节点（默认 5.0）",
+    )
     return 解析器.parse_args()
 
 
@@ -398,8 +407,14 @@ async def 主程序():
     if 参数.gpu is not None:
         配置["gpu"]["device_id"] = 参数.gpu
 
-    引导节点列表 = 解析引导节点(参数.bootnodes, 配置.get("bootnodes", []))
-    日志.info("引导节点（共 %d 个）：", len(引导节点列表))
+    候选节点列表 = 解析引导节点(参数.bootnodes, 配置.get("bootnodes", []))
+
+    # ── 带宽检测 + 最优节点选择 ───────────────────────────────────────────────
+    选择器 = 节点选择器(候选节点列表, 低带宽阈值=参数.bw_threshold)
+    引导节点列表, 选择原因 = 选择器.选择节点(跳过带宽检测=参数.skip_bw)
+    选择器.打印报告()
+    日志.info("节点选择策略：%s", 选择原因)
+    日志.info("最终使用引导节点（共 %d 个）：", len(引导节点列表))
     for 节点 in 引导节点列表:
         日志.info("  %s", 节点)
 
@@ -450,11 +465,14 @@ async def 主程序():
         if not 参数.no_node:
             任务列表.append(asyncio.create_task(节点.输出日志()))
 
+        带宽文本 = f"{选择器.测量带宽Mbps:.2f} Mbps" if 选择器.测量带宽Mbps else "未测量"
         日志.info("=" * 60)
         日志.info("  CSD 单机 GPU 矿工已启动")
         日志.info("  钱包地址  : %s", 钱包)
         日志.info("  挖矿域    : %s", 配置["mining"]["domain"])
         日志.info("  显卡设备  : %d", 配置["gpu"]["device_id"])
+        日志.info("  本机带宽  : %s", 带宽文本)
+        日志.info("  引导节点  : %d 个（%s）", len(引导节点列表), 选择原因)
         日志.info("  监控面板  : http://127.0.0.1:9090/统计")
         日志.info("=" * 60)
 
