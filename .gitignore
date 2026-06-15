@@ -1,0 +1,26 @@
+# CSD node data
+cs.db/
+*.db
+
+# Downloaded binaries
+csd
+csd-linux-*
+genesis.bin
+checksums.txt
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Config (contains wallet address)
+config.yaml
+
+# Logs
+*.log
+
+# Docker
+.env
