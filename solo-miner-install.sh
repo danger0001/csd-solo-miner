@@ -5,17 +5,17 @@
 #############################################
 
 # ========== 配置区域 ==========
-# 请在此处填入您的钱包地址
-WALLET_ADDRESS="YOUR_WALLET_ADDRESS_HERE"
-
 # 引导节点列表（可添加多个）
 BOOTSTRAP_NODES=(
     "/ip4/35.223.117.16/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp"
     "/ip4/35.245.161.243/tcp/30333/p2p/12D3KooWHdiAxVd8uMQR1hGWXccidmfCwLqcMpGwR6QcTP6QRMuD"
 )
 
-# 安装目录
-INSTALL_DIR="$HOME/csd-solo-miner"
+# 安装目录（当前目录，由install.sh创建）
+INSTALL_DIR="$(pwd)"
+
+# 钱包地址（运行时输入）
+WALLET_ADDRESS=""
 # ========== 配置区域结束 ==========
 
 set -e
@@ -39,14 +39,39 @@ log_error() {
     echo -e "${RED}[错误]${NC} $1"
 }
 
-# 检查钱包地址
-check_wallet() {
-    if [ "$WALLET_ADDRESS" == "YOUR_WALLET_ADDRESS_HERE" ]; then
-        log_error "请先在脚本中配置您的钱包地址！"
-        log_info "请编辑此脚本，将 WALLET_ADDRESS 修改为您的钱包地址"
-        exit 1
-    fi
-    log_info "钱包地址: $WALLET_ADDRESS"
+# 交互式输入钱包地址
+read_wallet_address() {
+    echo ""
+    echo "========================================="
+    echo "  请输入您的 CSD 钱包地址"
+    echo "========================================="
+    echo ""
+    echo "提示: 钱包地址通常以 0x 开头"
+    echo ""
+
+    while true; do
+        read -p "钱包地址: " WALLET_ADDRESS
+
+        if [ -z "$WALLET_ADDRESS" ]; then
+            log_error "钱包地址不能为空"
+            echo ""
+        else
+            echo ""
+            echo "您输入的钱包地址是:"
+            echo "$WALLET_ADDRESS"
+            echo ""
+            read -p "确认无误? (y/n): " confirm
+
+            if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
+                log_info "钱包地址已确认"
+                break
+            else
+                echo ""
+                log_warn "请重新输入钱包地址"
+                echo ""
+            fi
+        fi
+    done
 }
 
 # 检查系统要求
@@ -115,22 +140,14 @@ install_cuda() {
     log_info "如需GPU挖矿，请手动安装 CUDA Toolkit: https://developer.nvidia.com/cuda-downloads"
 }
 
-# 创建项目目录
+# 创建项目子目录
 create_directories() {
-    log_info "创建项目目录: $INSTALL_DIR"
-
-    if [ -d "$INSTALL_DIR" ]; then
-        log_warn "目录已存在，将使用现有目录"
-    else
-        mkdir -p "$INSTALL_DIR"
-    fi
-
-    cd "$INSTALL_DIR"
+    log_info "创建项目子目录..."
 
     # 创建子目录
     mkdir -p bin config data logs
 
-    log_info "项目目录创建完成"
+    log_info "项目目录创建完成: $INSTALL_DIR"
 }
 
 # 下载或克隆项目
@@ -219,7 +236,7 @@ log_dir = "$INSTALL_DIR/logs"
 EOF
 
     # 创建启动脚本
-    cat > "$INSTALL_DIR/start-miner.sh" <<EOF
+    cat > "$INSTALL_DIR/start.sh" <<EOF
 #!/bin/bash
 
 cd "$INSTALL_DIR"
@@ -238,7 +255,7 @@ LOG_FILE="logs/miner-\$(date +%Y%m%d-%H%M%S).log"
     2>&1 | tee "\$LOG_FILE"
 EOF
 
-    chmod +x "$INSTALL_DIR/start-miner.sh"
+    chmod +x "$INSTALL_DIR/start.sh"
 
     log_info "配置文件生成完成"
 }
@@ -248,7 +265,7 @@ create_management_scripts() {
     log_info "创建管理脚本..."
 
     # 停止脚本
-    cat > "$INSTALL_DIR/stop-miner.sh" <<'EOF'
+    cat > "$INSTALL_DIR/stop.sh" <<'EOF'
 #!/bin/bash
 pkill -f "compute-substrate.*--miner"
 echo "挖矿进程已停止"
@@ -296,24 +313,27 @@ show_completion_info() {
     log_info "安装完成！"
     echo ""
     echo "========================================"
-    echo "  CSD SOLO 挖矿安装成功"
+    echo "  CSD SOLO 挖矿安装成功 v4.0.0"
     echo "========================================"
     echo ""
     echo "安装目录: $INSTALL_DIR"
     echo "钱包地址: $WALLET_ADDRESS"
     echo ""
     echo "使用方法："
-    echo "  1. 启动挖矿: cd $INSTALL_DIR && ./start-miner.sh"
-    echo "  2. 停止挖矿: cd $INSTALL_DIR && ./stop-miner.sh"
-    echo "  3. 查看状态: cd $INSTALL_DIR && ./status.sh"
-    echo "  4. 查看日志: cd $INSTALL_DIR && ./view-logs.sh"
+    echo "  1. 启动挖矿: ./start.sh"
+    echo "  2. 停止挖矿: ./stop.sh"
+    echo "  3. 查看状态: ./status.sh"
+    echo "  4. 查看日志: ./view-logs.sh"
     echo ""
-    echo "配置文件位置: $INSTALL_DIR/config/miner-config.toml"
+    echo "配置文件位置: ./config/miner-config.toml"
     echo ""
     echo "注意事项："
     echo "  - 首次启动需要同步区块链数据，可能需要一些时间"
     echo "  - 建议在 screen 或 tmux 中运行挖矿进程"
     echo "  - 低带宽模式已启用，将只使用一个最优节点"
+    echo ""
+    echo "快速启动："
+    echo "  cd ~/solo && ./start.sh"
     echo ""
     echo "========================================"
 }
@@ -321,11 +341,11 @@ show_completion_info() {
 # 主函数
 main() {
     echo "========================================"
-    echo "  CSD SOLO 挖矿 - 一键安装脚本"
+    echo "  CSD SOLO 挖矿 - 一键安装脚本 v4.0.0"
     echo "========================================"
     echo ""
 
-    check_wallet
+    read_wallet_address
     check_system
     install_dependencies
     install_rust
