@@ -2,9 +2,30 @@
 
 针对 [Compute Substrate](https://computesubstrate.org/) 网络的 GPU 加速单机挖矿工具。使用 CUDA 并行计算提案哈希，向 CSD 主网提交提案与认证，最大化挖矿收益。
 
+## 🎉 v3.0.0 更新
+
+- ✅ **多合一安装脚本**：一个脚本完成所有安装步骤
+- ✅ **统一项目目录**：所有文件下载到 `~/csd-solo-miner` 文件夹
+- ✅ **脚本内配置**：直接在脚本中设置钱包地址
+- ✅ **低带宽优化**：自动选择延迟最低的节点，只使用一个最优节点
+- ✅ **完整中文文档**：包含详细的使用说明
+
 ---
 
 ## 快速开始
+
+### 方式一：多合一安装脚本（推荐）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/danger0001/solo-miner/main/solo-miner-install.sh -o solo-miner-install.sh
+chmod +x solo-miner-install.sh
+# 编辑脚本配置钱包地址后运行
+./solo-miner-install.sh
+```
+
+> **v3.0.0 新功能**：一键脚本自动创建 `~/csd-solo-miner` 项目文件夹，下载所有内容，支持低带宽模式（只使用最优节点）
+
+### 方式二：传统安装
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/danger0001/solo-miner/main/install.sh | bash
@@ -17,7 +38,9 @@ curl -fsSL https://raw.githubusercontent.com/danger0001/solo-miner/main/install.
 ## 目录
 
 - [硬件要求](#硬件要求)
-- [一键安装](#一键安装)
+- [快速开始](#快速开始)
+  - [多合一安装脚本（推荐）](#方式一多合一安装脚本推荐)
+  - [传统安装](#方式二传统安装)
 - [配置说明](#配置说明)
 - [引导节点](#引导节点)
 - [GPU 挖矿原理](#gpu-挖矿原理)
