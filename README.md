@@ -2,36 +2,60 @@
 
 针对 [Compute Substrate](https://computesubstrate.org/) 网络的 GPU 加速单机挖矿工具。使用 CUDA 并行计算提案哈希，向 CSD 主网提交提案与认证，最大化挖矿收益。
 
-## 🎉 v3.0.0 更新
+## 🎉 v4.0.0 更新
 
-- ✅ **多合一安装脚本**：一个脚本完成所有安装步骤
-- ✅ **统一项目目录**：所有文件下载到 `~/csd-solo-miner` 文件夹
-- ✅ **脚本内配置**：直接在脚本中设置钱包地址
-- ✅ **低带宽优化**：自动选择延迟最低的节点，只使用一个最优节点
-- ✅ **完整中文文档**：包含详细的使用说明
+- ✅ **Solo文件夹**：所有内容统一在简洁的 `~/solo` 目录
+- ✅ **一键安装**：无需下载编辑，直接运行一条命令
+- ✅ **交互式输入**：运行时输入钱包地址，更加便捷
+- ✅ **更简洁的命令**：一行命令完成所有安装
 
 ---
 
 ## 快速开始
 
-### 方式一：多合一安装脚本（推荐）
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/danger0001/solo-miner/main/solo-miner-install.sh -o solo-miner-install.sh
-chmod +x solo-miner-install.sh
-# 编辑脚本配置钱包地址后运行
-./solo-miner-install.sh
-```
-
-> **v3.0.0 新功能**：一键脚本自动创建 `~/csd-solo-miner` 项目文件夹，下载所有内容，支持低带宽模式（只使用最优节点）
-
-### 方式二：传统安装
+### 一键安装（推荐）
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/danger0001/solo-miner/main/install.sh | bash
 ```
 
-> 自动完成环境检测、依赖安装、配置生成，全程中文引导。
+安装过程中会提示您输入钱包地址，所有文件将安装到 `~/solo` 目录。
+
+### 安装完成后启动
+
+```bash
+cd ~/solo
+./start.sh
+```
+
+> **v4.0.0 新功能**：自动创建 `~/solo` 文件夹，运行时交互式输入钱包地址，一行命令完成所有安装。
+
+---
+
+## 目录结构
+
+安装完成后，`~/solo` 目录结构如下：
+
+```
+~/solo/
+├── bin/                      # 可执行文件
+│   └── compute-substrate     # 挖矿程序
+├── config/                   # 配置文件
+│   └── miner-config.toml    # 挖矿配置
+├── data/                    # 区块链数据
+├── logs/                    # 日志文件
+├── compute-substrate/       # 源码（编译后可删除）
+├── start.sh                # 启动挖矿
+├── stop.sh                 # 停止挖矿
+├── status.sh               # 查看状态
+└── view-logs.sh            # 查看日志
+```
+
+**常用命令：**
+- 启动挖矿：`./start.sh`
+- 停止挖矿：`./stop.sh`
+- 查看状态：`./status.sh`
+- 查看日志：`./view-logs.sh`
 
 ---
 
@@ -39,8 +63,7 @@ curl -fsSL https://raw.githubusercontent.com/danger0001/solo-miner/main/install.
 
 - [硬件要求](#硬件要求)
 - [快速开始](#快速开始)
-  - [多合一安装脚本（推荐）](#方式一多合一安装脚本推荐)
-  - [传统安装](#方式二传统安装)
+- [目录结构](#目录结构)
 - [配置说明](#配置说明)
 - [引导节点](#引导节点)
 - [GPU 挖矿原理](#gpu-挖矿原理)
