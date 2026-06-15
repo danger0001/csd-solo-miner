@@ -1,39 +1,35 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# CSD Solo GPU Miner — Configuration
-# Copy this file to config.yaml and fill in your details.
+# CSD 单机 GPU 矿工 · 配置文件模板
+# 复制本文件为 config.yaml 并填写你的钱包地址
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Miner identity
 miner:
-  wallet_address: "YOUR_WALLET_ADDRESS_HERE"   # <-- Set this!
-  domain: "compute"                            # CSD domain to mine on
-  worker_name: "worker-01"                     # Label shown in explorer
+  wallet_address: "YOUR_WALLET_ADDRESS_HERE"   # <-- 必填！填写你的 CSD 钱包地址
+  domain: "compute"                            # 挖矿域（默认 compute）
+  worker_name: "worker-01"                     # 工作器名称（显示在浏览器中）
 
-# Node settings
 node:
-  datadir: "./cs.db"         # Chain data directory (created automatically)
-  rpc_host: "0.0.0.0"        # RPC listen host (use 127.0.0.1 for local only)
-  rpc_port: 8789             # RPC listen port
-  p2p_host: "0.0.0.0"        # P2P listen host
-  p2p_port: 18007            # P2P listen port (open this in your firewall)
-  genesis: "./genesis.bin"   # Genesis file (downloaded by setup.sh)
+  datadir: "./cs.db"          # 链数据目录（首次启动自动创建）
+  rpc_host: "0.0.0.0"         # RPC 监听地址（仅本机访问可改为 127.0.0.1）
+  rpc_port: 8789              # RPC 端口
+  p2p_host: "0.0.0.0"         # P2P 监听地址
+  p2p_port: 18007             # P2P 端口（需在防火墙中开放）
+  genesis: "./genesis.bin"    # 创世文件（由 install.sh 自动下载）
 
-# GPU settings
 gpu:
-  device_id: 0              # CUDA device index (0 = first GPU)
-  threads_per_block: 256    # CUDA threads per block
-  max_blocks: 4096          # Max CUDA blocks per kernel launch
-  batch_size: 65536         # Nonces computed per GPU batch
+  device_id: 0                # 显卡编号（0 = 第一块显卡）
+  threads_per_block: 256      # 每块 CUDA 线程数
+  max_blocks: 4096            # 最大 CUDA 块数
+  batch_size: 65536           # 每批次计算随机数数量
 
-# Mining settings
 mining:
-  proposal_interval: 12     # Seconds between proposal submissions
-  attestation_interval: 6   # Seconds between attestation polls
-  max_retries: 5            # Max RPC retry attempts
+  proposal_interval: 12       # 提案提交间隔（秒）
+  attestation_interval: 6     # 认证检查间隔（秒）
+  max_retries: 5              # 最大重试次数
   difficulty_target: "0x00000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
 
-# Bootstrap nodes — all mainnet nodes listed for maximum peer discovery
-# Format: /ip4/<address>/tcp/<port>
+# 引导节点 — 已预配置全部 6 个主网节点（建议保留全部以获得最快连接）
+# 格式：/ip4/<IP地址>/tcp/<端口>
 bootnodes:
   - "/ip4/151.240.121.186/tcp/17999"
   - "/ip4/151.240.121.220/tcp/17999"
