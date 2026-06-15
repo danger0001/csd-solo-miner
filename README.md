@@ -1,14 +1,14 @@
-# CSD 单机挖矿程序
+# CSD 单机 GPU 挖矿程序
 
-针对 [Compute Substrate](https://computesubstrate.org/) 网络的单机挖矿工具。向 CSD 主网提交提案与认证，获得挖矿收益。
+针对 [Compute Substrate](https://computesubstrate.org/) 网络的 GPU 加速单机挖矿工具。使用 CUDA 并行计算提案哈希，向 CSD 主网提交提案与认证，最大化挖矿收益。
 
-## 🎉 v5.0.0 重大更新
+## 🎉 v5.1.0 更新
 
-- ✅ **零依赖安装**：只需 Python 3.9+，无需 CUDA/GPU
-- ✅ **开箱即用**：不再强制要求显卡驱动和 CUDA Toolkit
-- ✅ **CPU 友好**：自动使用 CPU 模式，适合更多设备
-- ✅ **简化部署**：移除复杂的 GPU 检测和配置步骤
-- ⚡ **可选 GPU**：高级用户可手动安装 CuPy 启用 GPU 加速
+- ✅ **智能安装**：只需 Python 3.9+，自动检测并配置 GPU
+- ✅ **GPU 优先**：自动安装 CUDA 支持，发挥显卡最大性能
+- ✅ **CPU 备用**：无 GPU 时自动降级为 CPU 模式
+- ✅ **简化部署**：一键安装，自动配置所有依赖
+- ⚡ **最大算力**：CUDA 并行计算，比 CPU 快数百倍
 
 ---
 
@@ -80,15 +80,21 @@ cd ~/solo
 | 组件 | 最低配置 | 推荐配置 |
 |------|---------|---------|
 | CPU | 4 核 | 8 核以上 |
-| 内存 | 4 GB | 8 GB |
-| 显卡 | 无需显卡（CPU 模式） | NVIDIA GPU（可选，需手动启用） |
-| 硬盘 | 10 GB SSD | 50 GB SSD |
-| 网络 | 5 Mbps | 50 Mbps 以上 |
+| 内存 | 8 GB | 16 GB |
+| 显卡 | NVIDIA GTX 1060（CUDA 6.1+） | NVIDIA RTX 3080 及以上 |
+| 硬盘 | 20 GB SSD | 100 GB NVMe SSD |
+| 网络 | 10 Mbps | 100 Mbps 以上 |
 
 **系统环境：**
 - Linux（推荐 Ubuntu 20.04 及以上）
 - Python 3.9 或更高版本
-- ⚠️ **注意**：本版本（v5.0.0）使用 CPU 模式，无需安装显卡驱动或 CUDA
+- NVIDIA 驱动 >= 470（安装脚本会自动检测）
+- CUDA Toolkit >= 11.4（安装脚本会自动安装对应版本）
+
+**⚡ GPU 挖矿优势：**
+- GPU 算力是 CPU 的 **100-1000 倍**
+- 更高的提案接受率和收益
+- 强烈推荐使用 NVIDIA GPU 进行挖矿
 
 ---
 
@@ -98,7 +104,7 @@ cd ~/solo
 curl -fsSL https://raw.githubusercontent.com/danger0001/solo-miner/main/install.sh | bash
 ```
 
-`install.sh` 会自动完成：下载 csd 节点程序、下载 genesis 文件、安装 Python 依赖（仅需 Python 3.9+）、生成配置文件，最后引导你填写钱包地址并启动挖矿。
+`install.sh` 会自动完成：检测 GPU、下载 csd 节点程序、下载 genesis 文件、安装 Python 依赖、自动安装 CUDA 支持（如有 GPU）、生成配置文件，最后引导你填写钱包地址并启动挖矿。
 
 ---
 
@@ -210,18 +216,25 @@ python3 node_selector.py
 
 ---
 
-## 挖矿原理
+## GPU 挖矿原理
 
-本程序通过以下方式运行挖矿：
+本程序通过 CUDA 并行计算大幅提升挖矿效率：
 
-1. **哈希计算** — 使用 Python hashlib 计算 SHA-256(轮次 || 随机数)，筛选满足难度目标的结果
-2. **提案评分** — 评估提案列表，找出置信度最高的认证目标
-3. **自动提交** — 向 CSD 节点提交提案和认证，无需人工干预
+1. **批量哈希计算** — CUDA 内核每批并行计算数万个候选随机数，筛选满足当前难度目标的最佳结果
+2. **并行提案评分** — GPU 同时评估多个提案，找出置信度最高的认证目标
+3. **零拷贝数据传输** — 使用锁页内存（Pinned Memory）在 CPU 与 GPU 之间高速传输数据，降低提案提交延迟
 
-**v5.0.0 版本特点：**
-- 使用 CPU 模式，无需显卡
-- 适合云服务器、VPS、个人电脑等各种环境
-- 若需 GPU 加速，可手动安装：`pip install cupy-cuda12x`
+**启动时显卡信息示例：**
+```
+[GPU] 检测到 1 块 CUDA 显卡：
+[GPU]   [0] NVIDIA GeForce RTX 3080  |  显存: 10240 MB  |  算力: 8.6  |  CUDA核心: 8704
+[GPU] 使用设备 0
+```
+
+**⚠️ CPU 模式说明：**
+- 若未检测到 GPU，程序会自动降级为 CPU 模式
+- CPU 模式算力远低于 GPU，仅适合测试
+- 生产环境强烈推荐使用 NVIDIA GPU
 
 ---
 
@@ -325,13 +338,15 @@ python miner.py --配置 config.yaml
 
 ## 常见问题
 
-**v5.0.0 需要 GPU 吗？**
-- 不需要！本版本默认使用 CPU 模式，适合任何 Linux 系统
-- 若需 GPU 加速，可手动安装 CuPy：`pip install cupy-cuda12x`
+**必须要 GPU 才能挖矿吗？**
+- **强烈推荐使用 GPU**！GPU 算力是 CPU 的 100-1000 倍
+- 无 GPU 时程序会自动降级为 CPU 模式，但收益极低
+- CPU 模式仅适合测试，生产环境必须使用 NVIDIA GPU
 
-**CPU 模式挖矿效率如何？**
-- CPU 模式可以正常提交提案和认证，只是哈希计算速度较 GPU 慢
-- 适合低成本测试和学习 CSD 挖矿流程
+**提示 `CUDA 不可用`**
+- 检查 `nvidia-smi` 是否正常运行，驱动是否已安装
+- 安装脚本会自动安装对应的 CUDA 支持
+- 手动安装：根据 CUDA 版本运行 `pip install cupy-cuda12x` 或 `cupy-cuda11x`
 
 **提示 `连接被拒绝`（RPC 错误）**
 - 等待 30–60 秒让节点完成初始化和同步。
@@ -351,7 +366,8 @@ python miner.py --配置 config.yaml
 
 | 版本 | 说明 |
 |------|------|
-| [v5.0.0](https://github.com/danger0001/solo-miner) | 🎉 **重大更新**：只需 Python 3.9+，移除 GPU 硬依赖，CPU 友好模式 |
+| [v5.1.0](https://github.com/danger0001/solo-miner) | 🚀 **智能安装**：自动检测并配置 GPU，强化 GPU 挖矿特性 |
+| [v5.0.0](https://github.com/danger0001/solo-miner) | 简化安装流程，只需 Python 3.9+ 基础环境 |
 | [v4.0.0](https://github.com/danger0001/solo-miner) | Solo 文件夹结构，一键安装，交互式输入 |
 | [v2.1.0](https://github.com/danger0001/solo-miner) | 智能带宽检测，低带宽自动切换最优单节点 |
 | [v2.0.0](https://github.com/danger0001/solo-miner/releases/tag/v2.0.0) | 中文界面、一键安装脚本 |

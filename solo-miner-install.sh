@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #############################################
-# CSD SOLO 挖矿 - 一键安装脚本 v5.0.0
-# 只需 Python 3.9+，无需 GPU/CUDA
+# CSD SOLO GPU 挖矿 - 一键安装脚本 v5.1.0
+# GPU 优先，自动检测并配置 CUDA 支持
 #############################################
 
 # ========== 配置区域 ==========
@@ -93,7 +93,25 @@ check_system() {
 
     PY_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
     log_info "Python 版本: $PY_VERSION"
-    log_info "✓ v5.0.0 使用 CPU 模式，无需 GPU/CUDA"
+
+    # 检查GPU（推荐但非必需）
+    echo ""
+    if ! command -v nvidia-smi &> /dev/null; then
+        log_warn "⚠️  未检测到 NVIDIA GPU 或驱动未安装"
+        log_warn "⚠️  GPU 算力是 CPU 的 100-1000 倍，强烈推荐使用 GPU 挖矿"
+        log_warn "⚠️  继续安装将使用 CPU 模式（收益极低）"
+        echo ""
+        read -p "是否继续安装? (y/n): " confirm
+        if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+            log_info "安装已取消。请先安装 NVIDIA 驱动后再运行此脚本。"
+            exit 0
+        fi
+    else
+        log_info "✓ 检测到 NVIDIA GPU:"
+        nvidia-smi --query-gpu=name,memory.total --format=csv,noheader | while read line; do
+            log_info "  - $line"
+        done
+    fi
 
     log_info "系统检查完成"
 }
@@ -147,12 +165,41 @@ install_python_deps() {
         python3 -m ensurepip --upgrade || curl -sS https://bootstrap.pypa.io/get-pip.py | python3
     fi
 
-    # 安装核心依赖（不含GPU支持）
-    log_info "安装 Python 包（aiohttp, PyYAML, numpy）..."
+    # 安装核心依赖
+    log_info "安装基础 Python 包（aiohttp, PyYAML, numpy）..."
     pip3 install -r requirements.txt
 
+    # 检测GPU并安装相应的CuPy版本
+    echo ""
+    if command -v nvidia-smi &> /dev/null; then
+        log_info "检测到 GPU，正在安装 CUDA 支持..."
+
+        # 检测CUDA版本
+        if command -v nvcc &> /dev/null; then
+            CUDA_VERSION=$(nvcc --version | grep "release" | sed 's/.*release \([0-9]*\)\..*/\1/')
+            log_info "检测到 CUDA $CUDA_VERSION"
+
+            if [ "$CUDA_VERSION" = "12" ]; then
+                log_info "安装 cupy-cuda12x..."
+                pip3 install cupy-cuda12x --no-cache-dir || log_warn "CuPy 安装失败，将使用 CPU 模式"
+            elif [ "$CUDA_VERSION" = "11" ]; then
+                log_info "安装 cupy-cuda11x..."
+                pip3 install cupy-cuda11x --no-cache-dir || log_warn "CuPy 安装失败，将使用 CPU 模式"
+            else
+                log_warn "不支持的 CUDA 版本: $CUDA_VERSION，尝试安装通用版本..."
+                pip3 install cupy --no-cache-dir || log_warn "CuPy 安装失败，将使用 CPU 模式"
+            fi
+        else
+            log_warn "未找到 nvcc 命令，尝试自动检测..."
+            pip3 install cupy-cuda12x --no-cache-dir || pip3 install cupy-cuda11x --no-cache-dir || log_warn "CUDA 支持安装失败，将使用 CPU 模式"
+        fi
+
+        log_info "✓ GPU 支持安装完成"
+    else
+        log_warn "未检测到 GPU，将使用 CPU 模式（收益极低）"
+    fi
+
     log_info "Python 依赖安装完成"
-    log_info "提示: 若需 GPU 加速，请手动运行: pip3 install cupy-cuda12x"
 }
 
 # 生成配置文件
@@ -275,7 +322,7 @@ show_completion_info() {
     log_info "安装完成！"
     echo ""
     echo "========================================"
-    echo "  CSD SOLO 挖矿安装成功 v5.0.0"
+    echo "  CSD SOLO GPU 挖矿安装成功 v5.1.0"
     echo "========================================"
     echo ""
     echo "安装目录: $INSTALL_DIR"
@@ -290,8 +337,9 @@ show_completion_info() {
     echo "配置文件: ./config.yaml"
     echo ""
     echo "注意事项："
-    echo "  - v5.0.0 使用 CPU 模式，无需 GPU/CUDA"
+    echo "  - v5.1.0 优先使用 GPU 挖矿，自动配置 CUDA"
     echo "  - 首次启动会自动测试引导节点并选择最优节点"
+    echo "  - GPU 算力是 CPU 的 100-1000 倍"
     echo "  - 建议在 screen 或 tmux 中后台运行"
     echo ""
     echo "快速启动："
@@ -308,8 +356,8 @@ show_completion_info() {
 # 主函数
 main() {
     echo "========================================"
-    echo "  CSD SOLO 挖矿 - 一键安装脚本 v5.0.0"
-    echo "  只需 Python 3.9+ | 无需 GPU/CUDA"
+    echo "  CSD SOLO GPU 挖矿 - 一键安装 v5.1.0"
+    echo "  GPU 优先 | 自动配置 CUDA"
     echo "========================================"
     echo ""
 
