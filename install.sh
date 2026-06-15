@@ -261,12 +261,14 @@ echo "  · 工作器    : $工作器名称"
 echo "  · 显卡设备  : $GPU_设备"
 echo "  · GPU 模式  : $( [[ "$GPU_可用" == "true" ]] && echo "已启用" || echo "CPU 回退模式" )"
 echo "  · 监控面板  : http://127.0.0.1:9090/stats"
+echo "  · 带宽检测  : 启动时自动检测，低于 5 Mbps 则仅使用最优单节点"
 echo ""
 
 if [[ "$钱包地址" == "YOUR_WALLET_ADDRESS_HERE" ]]; then
     警告 "钱包地址尚未设置！请编辑 config.yaml 后再次运行："
-    echo "      nano config.yaml      # 修改 wallet_address"
-    echo "      ./start.sh            # 启动挖矿"
+    echo "      nano config.yaml          # 修改 wallet_address"
+    echo "      ./start.sh                # 启动挖矿（自动带宽检测）"
+    echo "      ./start.sh --跳过带宽检测  # 跳过检测，使用全部节点"
     echo ""
     exit 0
 fi
