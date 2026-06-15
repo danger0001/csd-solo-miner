@@ -1,30 +1,30 @@
 #!/usr/bin/env bash
-# start.sh — Launch the CSD Solo GPU Miner
+# start.sh — CSD 单机 GPU 矿工启动脚本
 #
-# Usage:
-#   ./start.sh                                              # Use bootnodes from config.yaml
-#   ./start.sh --bootnodes all                              # Force all mainnet bootnodes
-#   ./start.sh --bootnodes "/ip4/151.240.121.186/tcp/17999" # Single custom bootnode
-#   ./start.sh --bootnodes "/ip4/A/tcp/17999,/ip4/B/tcp/17999"  # Multiple custom bootnodes
-#   ./start.sh --gpu 1                                      # Use second GPU
-#   ./start.sh --no-node                                    # Skip launching csd node
-#   ./start.sh --debug                                      # Verbose logging
+# 用法：
+#   ./start.sh                                                    # 使用 config.yaml 中的引导节点
+#   ./start.sh --引导节点 全部                                    # 强制使用全部主网节点
+#   ./start.sh --引导节点 "/ip4/151.240.121.186/tcp/17999"        # 指定单个节点
+#   ./start.sh --引导节点 "/ip4/A/tcp/17999,/ip4/B/tcp/17999"    # 指定多个节点
+#   ./start.sh --显卡 1                                           # 使用第二块显卡
+#   ./start.sh --仅矿工                                           # 不启动 csd 节点（使用已有节点）
+#   ./start.sh --调试                                             # 输出详细日志
 #
 set -euo pipefail
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+红='\033[0;31m'
+绿='\033[0;32m'
+黄='\033[1;33m'
+青='\033[0;36m'
+重置='\033[0m'
 
-log()  { echo -e "${CYAN}[start]${NC} $*"; }
-ok()   { echo -e "${GREEN}[  OK  ]${NC} $*"; }
-warn() { echo -e "${YELLOW}[ WARN ]${NC} $*"; }
-die()  { echo -e "${RED}[ERROR ]${NC} $*"; exit 1; }
+信息()  { echo -e "${青}[信息]${重置} $*"; }
+成功()  { echo -e "${绿}[完成]${重置} $*"; }
+警告()  { echo -e "${黄}[警告]${重置} $*"; }
+错误()  { echo -e "${红}[错误]${重置} $*"; exit 1; }
 
-# ── Default mainnet bootstrap nodes ──────────────────────────────────────────
-MAINNET_BOOTNODES=(
+# ── 主网引导节点 ──────────────────────────────────────────────────────────────
+主网引导节点=(
     "/ip4/151.240.121.186/tcp/17999"
     "/ip4/151.240.121.220/tcp/17999"
     "/ip4/151.240.121.187/tcp/17999"
@@ -33,90 +33,78 @@ MAINNET_BOOTNODES=(
     "/ip4/151.240.121.189/tcp/17999"
 )
 
-# ── Parse arguments ───────────────────────────────────────────────────────────
-BOOTNODES_ARG=""
-GPU_ARG=""
-NO_NODE=""
-DEBUG_ARG=""
-EXTRA_ARGS=()
+# ── 解析参数 ──────────────────────────────────────────────────────────────────
+引导节点参数=""
+显卡参数=""
+仅矿工=""
+调试参数=""
+配置文件="config.yaml"
+其他参数=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --bootnodes)
-            BOOTNODES_ARG="$2"
-            shift 2
-            ;;
-        --gpu)
-            GPU_ARG="$2"
-            shift 2
-            ;;
-        --no-node)
-            NO_NODE="--no-node"
-            shift
-            ;;
-        --debug)
-            DEBUG_ARG="--debug"
-            shift
-            ;;
-        --config)
-            CONFIG_FILE="$2"
-            shift 2
-            ;;
+        --引导节点|--bootnodes)
+            引导节点参数="$2"; shift 2 ;;
+        --显卡|--gpu)
+            显卡参数="$2"; shift 2 ;;
+        --仅矿工|--no-node)
+            仅矿工="--no-node"; shift ;;
+        --调试|--debug)
+            调试参数="--debug"; shift ;;
+        --配置|--config)
+            配置文件="$2"; shift 2 ;;
         *)
-            EXTRA_ARGS+=("$1")
-            shift
-            ;;
+            其他参数+=("$1"); shift ;;
     esac
 done
 
-CONFIG_FILE="${CONFIG_FILE:-config.yaml}"
+# ── 启动前检查 ────────────────────────────────────────────────────────────────
+[[ -f "$配置文件" ]]  || 错误 "配置文件 $配置文件 不存在，请先运行：./install.sh"
+[[ -f "csd" ]]        || 错误 "csd 程序不存在，请先运行：./install.sh"
+[[ -f "genesis.bin" ]] || 错误 "genesis.bin 不存在，请先运行：./install.sh"
+python3 --version >/dev/null 2>&1 || 错误 "未找到 python3"
+python3 -c "import aiohttp" 2>/dev/null || 错误 "缺少依赖，请运行：pip install -r requirements.txt"
 
-# ── Pre-flight checks ─────────────────────────────────────────────────────────
-[[ -f "$CONFIG_FILE" ]] || die "config.yaml not found. Run ./setup.sh first."
-[[ -f "csd" ]]          || die "csd binary not found. Run ./setup.sh first."
-[[ -f "genesis.bin" ]]  || die "genesis.bin not found. Run ./setup.sh first."
-python3 --version >/dev/null 2>&1 || die "python3 not found."
-python3 -c "import aiohttp" 2>/dev/null || die "aiohttp not installed. Run: pip install -r requirements.txt"
-
-# ── Resolve bootnodes ─────────────────────────────────────────────────────────
-if [[ -z "$BOOTNODES_ARG" ]]; then
-    # Use whatever is in config.yaml — miner.py reads it
-    BOOTNODE_FLAG=""
-    log "Bootstrap nodes: from config.yaml"
-elif [[ "${BOOTNODES_ARG,,}" == "all" ]]; then
-    BN_LIST=$(IFS=","; echo "${MAINNET_BOOTNODES[*]}")
-    BOOTNODE_FLAG="--bootnodes ${BN_LIST}"
-    log "Bootstrap nodes: all ${#MAINNET_BOOTNODES[@]} mainnet nodes"
+# ── 引导节点处理 ──────────────────────────────────────────────────────────────
+if [[ -z "$引导节点参数" ]]; then
+    引导节点标志=""
+    信息 "引导节点：使用 config.yaml 中的配置"
+elif [[ "${引导节点参数,,}" == "全部" ]] || [[ "${引导节点参数,,}" == "all" ]]; then
+    BN_LIST=$(IFS=","; echo "${主网引导节点[*]}")
+    引导节点标志="--bootnodes ${BN_LIST}"
+    信息 "引导节点：全部 ${#主网引导节点[@]} 个主网节点"
+    for bn in "${主网引导节点[@]}"; do
+        信息 "  → $bn"
+    done
 else
-    BOOTNODE_FLAG="--bootnodes ${BOOTNODES_ARG}"
-    IFS=',' read -ra BN_ARRAY <<< "$BOOTNODES_ARG"
-    log "Bootstrap nodes: ${#BN_ARRAY[@]} custom node(s)"
-    for bn in "${BN_ARRAY[@]}"; do
-        log "  → $bn"
+    引导节点标志="--bootnodes ${引导节点参数}"
+    IFS=',' read -ra 节点数组 <<< "$引导节点参数"
+    信息 "引导节点：${#节点数组[@]} 个自定义节点"
+    for bn in "${节点数组[@]}"; do
+        信息 "  → $bn"
     done
 fi
 
-# ── GPU info ──────────────────────────────────────────────────────────────────
+# ── 显卡信息 ──────────────────────────────────────────────────────────────────
 if command -v nvidia-smi &>/dev/null; then
-    GPU_IDX="${GPU_ARG:-0}"
-    GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader -i "$GPU_IDX" 2>/dev/null || echo "Unknown")
-    ok "GPU $GPU_IDX: $GPU_NAME"
+    设备编号="${显卡参数:-0}"
+    显卡名=$(nvidia-smi --query-gpu=name --format=csv,noheader -i "$设备编号" 2>/dev/null || echo "未知")
+    成功 "使用显卡 [$设备编号] $显卡名"
 else
-    warn "nvidia-smi not found — CPU mining mode"
+    警告 "未检测到 NVIDIA 显卡，使用 CPU 模式"
 fi
 
-[[ -n "$GPU_ARG" ]] && GPU_FLAG="--gpu $GPU_ARG" || GPU_FLAG=""
+[[ -n "$显卡参数" ]] && 显卡标志="--gpu $显卡参数" || 显卡标志=""
 
-# ── Launch ────────────────────────────────────────────────────────────────────
+# ── 启动 ──────────────────────────────────────────────────────────────────────
 echo ""
-echo -e "${GREEN}============================================${NC}"
-echo -e "${GREEN}  Starting CSD Solo GPU Miner${NC}"
-echo -e "${GREEN}============================================${NC}"
-echo ""
-
-CMD="python3 miner.py --config ${CONFIG_FILE} ${BOOTNODE_FLAG} ${GPU_FLAG} ${NO_NODE} ${DEBUG_ARG}"
-
-log "Command: $CMD"
+echo -e "${绿}════════════════════════════════════════${重置}"
+echo -e "${绿}   CSD 单机 GPU 矿工  ·  正在启动      ${重置}"
+echo -e "${绿}════════════════════════════════════════${重置}"
 echo ""
 
-exec $CMD "${EXTRA_ARGS[@]}"
+CMD="python3 miner.py --config ${配置文件} ${引导节点标志} ${显卡标志} ${仅矿工} ${调试参数}"
+信息 "执行命令：$CMD"
+echo ""
+
+exec $CMD "${其他参数[@]}"
